@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <random>
 
 template <typename K, typename T>
 class HashTable {
@@ -17,17 +18,18 @@ public:
 	HashTable();
 	int hash_function(K key);
 	HashTable(size_t size);
-	//Constructor 2 
 	HashTable(const HashTable& other);
 	~HashTable();
 	HashTable& operator=(const HashTable& other);
 	void print();
-	void insert(K key, T value);
+	void insert(K key, T value, int& count);
 	void insert_or_assign(K key, T value);
 	bool contains(T value);
 	T* search(K key);
 	bool erase(K key);
 	int count(K key);
+	double load_factor() const;
+	void rehash();
 };
 
 template <typename K, typename T>
@@ -79,8 +81,37 @@ void HashTable<K, T>::print() {
 }
 
 template <typename K, typename T>
-void HashTable<K, T>::insert(K key, T value) {
+double HashTable<K, T>::load_factor() const {
+	size_t count = 0;
+	for (auto& pair : _data)
+	{
+		if (pair._status == Pair::status::OCCUPIED)
+			count++;
+	}
+	return (double)count / _data.size();
+}
+
+template <typename K, typename T>
+void HashTable<K, T>::rehash() {
+	std::vector<Pair> new_data(_data.size() * 2);
+	for (auto& pair : _data)
+	{
+		if (pair._status == Pair::status::OCCUPIED)
+		{
+			size_t index = hash_function(pair._key);
+			while (new_data[index]._status != Pair::status::EMPTY)
+				index = (index + 1) % new_data.size();
+			new_data[index] = pair;
+		}
+	}
+	_data = new_data;
+}
+
+template <typename K, typename T>
+void HashTable<K, T>::insert(K key, T value, int& count) {
+	if (load_factor() >= 0.75) rehash();
 	int index = hash_function(key);
+	if (_data[index]._status == Pair::status::OCCUPIED) count++;
 	while (_data[index]._status == Pair::status::OCCUPIED) {
 		index = (index + 1) % _data.size();
 	}
@@ -91,6 +122,7 @@ void HashTable<K, T>::insert(K key, T value) {
 
 template <typename K, typename T>
 void HashTable<K, T>::insert_or_assign(K key, T value) {
+	if (load_factor() >= 0.75) rehash();
 	int index = hash_function(key);
 	if (_data[index]._status == Pair::status::EMPTY) {
 		_data[index]._key = key;
@@ -147,4 +179,44 @@ int HashTable<K, T>::count(K key) {
 		index = (index + 1) % _data.size();
 	}
 	return count;
+}
+
+void simulate_and_plot_collisions(int num_experiments, int num_people_in_group, int min_table_size, int max_table_size, int step_size) {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<int> dist(1, 1000);
+	std::vector<int> table_sizes;
+	std::vector<double> collision_probabilities;
+
+	for (int table_size = min_table_size; table_size <= max_table_size; table_size += step_size) {
+		int total_collisions = 0;
+		for (int exp = 0; exp < num_experiments; ++exp) {
+			HashTable<int, int> hash_table(table_size);
+			int count = 0;
+			for (int i = 0; i < num_people_in_group; ++i) {
+				int key = dist(gen);
+				hash_table.insert(key, i, count);
+			}
+
+			total_collisions += count;
+		}
+		double collision_probability = static_cast<double>(total_collisions) / (num_experiments * num_people_in_group);
+		table_sizes.push_back(table_size);
+		collision_probabilities.push_back(collision_probability * 100);
+	}
+
+	int table_size_final = -1;
+	for (size_t i = 0; i < collision_probabilities.size(); ++i) {
+		if (collision_probabilities[i] == *std::min_element(begin(collision_probabilities), end(collision_probabilities))) {
+			table_size_final = table_sizes[i];
+			break;
+		}
+	}
+
+	std::cout << "Table Size\tCollision Probability" << std::endl;
+	for (size_t i = 0; i < table_sizes.size(); ++i) {
+		std::cout << table_sizes[i] << "\t\t" << collision_probabilities[i] << std::endl;
+	}
+	std::cout << std::endl;
+	std::cout << "Table size with min probability: " << table_size_final << std::endl;
 }

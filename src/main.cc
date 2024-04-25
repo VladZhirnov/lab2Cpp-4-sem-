@@ -2,17 +2,10 @@
 
 int main()
 {
-    HashTable<int, int> a(5);
-    a.insert(106, 3);
-    a.insert(106, 9);
-    a.insert(106, 20);
-    a.print();
-    a.erase(106);
-    a.print();
-    a.insert(106, 99);
-    a.print();
-    //std::cout << a.count(106);
-    //a.insert_or_assign(106, 1);
-    //a.print();
-    //int hash = a.hash_function(104);
+    int num_experiments = 100;
+    int num_people_in_group = 26;
+    int min_table_size = 25;
+    int max_table_size = 475;
+    int step_size = 50;
+    simulate_and_plot_collisions(num_experiments, num_people_in_group, min_table_size, max_table_size, step_size);
 }
