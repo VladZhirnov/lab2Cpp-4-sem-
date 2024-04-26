@@ -48,8 +48,7 @@ HashTable<K, T>::HashTable() {
 
 template <typename K, typename T>
 HashTable<K, T>::HashTable(size_t size) {
-	if (size == 0) throw std::invalid_argument("Size = 0!");
-		_data.resize(size);
+	_data.resize(size);
 }
 
 template <typename K, typename T>
@@ -109,6 +108,7 @@ void HashTable<K, T>::rehash() {
 
 template <typename K, typename T>
 void HashTable<K, T>::insert(K key, T value, int& count) {
+	if (search(key) != nullptr) return;
 	if (load_factor() >= 0.75) rehash();
 	int index = hash_function(key);
 	if (_data[index]._status == Pair::status::OCCUPIED) count++;
@@ -122,6 +122,7 @@ void HashTable<K, T>::insert(K key, T value, int& count) {
 
 template <typename K, typename T>
 void HashTable<K, T>::insert_or_assign(K key, T value) {
+	if (search(key) != nullptr) return;
 	if (load_factor() >= 0.75) rehash();
 	int index = hash_function(key);
 	if (_data[index]._status == Pair::status::EMPTY) {
